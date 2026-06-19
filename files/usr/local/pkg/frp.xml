@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE packagegui SYSTEM "../schema/packages.dtd">
+<?xml-stylesheet type="text/xsl" href="../xsl/package.xsl"?>
+<packagegui>
+	<copyright>
+	<![CDATA[
+/*
+ * frp.xml
+ *
+ * pfSense package for FRP client management.
+ *
+ * Licensed under the Apache License, Version 2.0.
+ */
+	]]>
+	</copyright>
+	<name>frp</name>
+	<version>%%PKGVERSION%%</version>
+	<title>Services/FRP Client</title>
+	<include_file>/usr/local/pkg/frp/frp.inc</include_file>
+	<menu>
+		<name>FRP Client</name>
+		<tooltiptext>Manage FRP client</tooltiptext>
+		<section>Services</section>
+		<url>/frp_client.php</url>
+	</menu>
+	<service>
+		<name>frpc</name>
+		<rcfile>frpc-pfsense</rcfile>
+		<executable>frpc</executable>
+		<description>FRP Client</description>
+	</service>
+	<configpath>installedpackages->frp->config</configpath>
+	<fields>
+		<field>
+			<fielddescr>Enable</fielddescr>
+			<fieldname>enable</fieldname>
+			<description>Start frpc after saving and during system boot.</description>
+			<type>checkbox</type>
+		</field>
+		<field>
+			<fielddescr>frpc.toml</fielddescr>
+			<fieldname>toml</fieldname>
+			<description>Full FRP client configuration in TOML format. This content is written to /usr/local/etc/frpc.toml.</description>
+			<type>textarea</type>
+			<cols>90</cols>
+			<rows>28</rows>
+			<encoding>base64</encoding>
+			<default_value>c2VydmVyQWRkciA9ICJmcnBzLmV4YW1wbGUuY29tIgpzZXJ2ZXJQb3J0ID0gNzAwMAoKW1twcm94aWVzXV0KbmFtZSA9ICJzc2giCnR5cGUgPSAidGNwIgpsb2NhbElQID0gIjEyNy4wLjAuMSIKbG9jYWxQb3J0ID0gMjIKcmVtb3RlUG9ydCA9IDYwMDA=</default_value>
+		</field>
+	</fields>
+	<custom_php_validation_command>
+		frp_validate_input($_POST, $input_errors);
+	</custom_php_validation_command>
+	<custom_php_resync_config_command>
+		frp_configure();
+	</custom_php_resync_config_command>
+	<custom_php_install_command>
+		frp_custom_php_install_command();
+	</custom_php_install_command>
+	<custom_php_deinstall_command>
+		frp_custom_php_deinstall_command();
+	</custom_php_deinstall_command>
+</packagegui>

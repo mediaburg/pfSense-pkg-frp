@@ -1,0 +1,8 @@
+/etc/inc/priv/frp.priv.inc
+etc/rc.d/frpc-pfsense
+pkg/frp.xml
+pkg/frp/frp.inc
+www/frp_client.php
+%%DATADIR%%/info.xml
+@dir /etc/inc/priv
+@dir /etc/inc
