@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<pfsensepkgs>
+	<package>
+		<name>FRP Client</name>
+		<internal_name>frp</internal_name>
+		<pkginfolink>https://github.com/fatedier/frp</pkginfolink>
+		<descr><![CDATA[FRP client management for pfSense.]]></descr>
+		<website>https://github.com/fatedier/frp</website>
+		<version>%%PKGVERSION%%</version>
+		<configurationfile>frp.xml</configurationfile>
+		<logging>
+			<logtab>FRP Client</logtab>
+			<facilityname>frpc</facilityname>
+			<logfilename>frp.log</logfilename>
+			<logowner>root:wheel</logowner>
+			<logmode>600</logmode>
+			<rotatecount>7</rotatecount>
+			<logfilesize>512000</logfilesize>
+		</logging>
+	</package>
+</pfsensepkgs>

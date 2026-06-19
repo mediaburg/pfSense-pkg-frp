@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# PROVIDE: frpc_pfsense
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="frpc_pfsense"
+rcvar="frpc_pfsense_enable"
+command="/usr/sbin/daemon"
+pidfile="/var/run/frpc-pfsense.pid"
+procname="/usr/local/bin/frpc"
+frpc_pfsense_logfile="/var/log/frp.log"
+command_args="-f -H -o ${frpc_pfsense_logfile} -m 3 -p ${pidfile} ${procname} -c /usr/local/etc/frpc.toml"
+
+load_rc_config "${name}"
+
+: ${frpc_pfsense_enable:="NO"}
+
+run_rc_command "$1"
