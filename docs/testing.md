@@ -2,7 +2,8 @@
 
 ## Local regression checks
 
-PHP 8.3 or newer, OpenSSL, a POSIX shell, ps, Python 3 and Node.js:
+PHP 8.3 or newer with filter, OpenSSL, ctype and mbstring, a POSIX shell, ps,
+Python 3 and Node.js:
 
     php tests/run.php
     php tests/ha.php

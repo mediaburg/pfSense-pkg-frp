@@ -18,7 +18,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check release version
         id: version
         env:
@@ -43,7 +43,7 @@ jobs:
     env:
       PORTS_COMMIT: a621624266b19a7f48b1f94a60821d2c2fc6ee4c
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build and inspect FreeBSD 15 package
         uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1 # v1.5.5
         with:
@@ -51,7 +51,7 @@ jobs:
           arch: amd64
           envs: PORTS_COMMIT GITHUB_SHA
           prepare: |
-            pkg install -y git-lite frp php84 php84-gettext php84-ctype php84-mbstring
+            pkg install -y git-lite frp php84 php84-filter php84-openssl php84-gettext php84-ctype php84-mbstring
           run: |
             set -eu
             git init /tmp/pfsense-ports
