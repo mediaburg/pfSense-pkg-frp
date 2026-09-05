@@ -51,7 +51,10 @@ jobs:
           arch: amd64
           envs: PORTS_COMMIT GITHUB_SHA
           prepare: |
-            pkg install -y git-lite frp php84 php84-filter php84-openssl php84-gettext php84-ctype php84-mbstring
+            set -eu
+            # OpenSSL is built into FreeBSD's php84 port.
+            pkg install -y git-lite frp php84 php84-filter php84-gettext php84-ctype php84-mbstring
+            php -r 'foreach (["filter", "openssl", "gettext", "ctype", "mbstring"] as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing PHP extension: $extension\n"); exit(1); } }'
           run: |
             set -eu
             git init /tmp/pfsense-ports
