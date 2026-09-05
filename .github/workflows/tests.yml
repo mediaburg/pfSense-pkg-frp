@@ -1,0 +1,29 @@
+name: Package checks
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gettext, openssl, ctype, mbstring
+          coverage: none
+      - run: php tests/run.php
+      - run: php tests/ha.php
+      - run: php tests/carp.php
+      - run: python3 tests/supervisor.py
+      - run: python3 tests/check.py
+      - run: node --check files/usr/local/www/frp-assets/frp.js
+      - run: git diff --check
+      - run: sh tests/release.sh

@@ -2,6 +2,8 @@
 ._*
 work/
 distfiles/
+dist/
+artifacts/
 *.pkg
 *.txz
 *.tgz

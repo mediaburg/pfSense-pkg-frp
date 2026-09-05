@@ -1,0 +1,3 @@
+# Preserve upstream patch context and vendored assets byte-for-byte.
+/docs/patches/*.patch -whitespace
+/files/usr/local/www/frp-assets/ace/*.js -whitespace

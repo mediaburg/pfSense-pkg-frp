@@ -24,12 +24,19 @@
 		<url>/frp_client.php</url>
 	</menu>
 	<service>
-		<name>frpc</name>
+		<name>frp</name>
 		<rcfile>frpc-pfsense</rcfile>
 		<executable>frpc</executable>
 		<description>FRP Client</description>
+		<starts_on_sync/>
 	</service>
 	<configpath>installedpackages->frp->config</configpath>
+	<plugins>
+		<item><type>plugin_carp</type></item>
+		<item><type>plugin_xmlrpc_send</type></item>
+		<item><type>plugin_xmlrpc_recv</type></item>
+		<item><type>plugin_xmlrpc_recv_done</type></item>
+	</plugins>
 	<fields>
 		<field>
 			<fielddescr>Enable</fielddescr>

@@ -1,0 +1,60 @@
+/* Theme display rules override the browser's hidden rule on form controls. */
+#frp-page [hidden] {display: none !important;}
+#frp-page .panel-body {padding: 18px 20px;}
+#frp-page .panel-title {display: flex; align-items: center; gap: 12px;}
+#frp-page .panel-footer {padding: 14px 20px;}
+#frp-page .help-block {font-size: 13px; margin: 6px 0 0; line-height: 1.5;}
+#frp-page .frp-status-body {padding-top: 16px; padding-bottom: 14px;}
+.frp-status-line {display: flex; align-items: center; gap: 12px;}
+.frp-status-line .label {font-size: 13px; padding: 6px 10px;}
+.frp-updated {margin-left: auto; font-size: 12px;}
+#frp-page .frp-status-detail {margin: 10px 0 0;}
+.frp-status-detail:empty {display: none;}
+.frp-status-links {margin-top: 12px; font-size: 13px;}
+#frp-page [data-frp-tunnel-table] {margin-top: 16px;}
+#frp-page table {margin-bottom: 0;}
+#frp-page .frp-enable-row {display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 18px;}
+#frp-page .frp-check {display: inline-flex; align-items: flex-start; gap: 8px; margin: 0; font-weight: normal; cursor: pointer;}
+#frp-page .frp-check input {position: static; flex: none; margin: 3px 0 0;}
+#frp-page .frp-enable-row .frp-check {font-weight: bold;}
+.frp-enable-row > .text-muted {font-size: 13px;}
+.frp-editor-toolbar {display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; min-height: 24px;}
+.frp-editor-toolbar label {margin: 0; font-family: monospace;}
+#frp-editor, #frp-page #toml {height: 420px; min-height: 240px; width: 100%; border: 1px solid #bbb; border-radius: 3px; font: 14px/1.5 monospace;}
+#frp-editor {resize: vertical; overflow: hidden;}
+#frp-page #toml {resize: vertical; tab-size: 4; padding: 10px 12px;}
+#frp-page .frp-editor-help {margin-top: 10px;}
+#frp-page details > summary {cursor: pointer; font-weight: bold; padding: 15px 0;}
+#frp-page details > summary {list-style: none;}
+#frp-page details > summary::-webkit-details-marker {display: none;}
+#frp-page details > summary::before {content: '›'; display: inline-block; width: 16px; transform-origin: 5px 50%;}
+#frp-page details[open] > summary::before {transform: rotate(90deg);}
+#frp-page details > summary:focus-visible {outline: 2px solid currentColor; outline-offset: 2px;}
+#frp-page .frp-options {border-top: 1px solid #ddd; margin-top: 20px;}
+#frp-page .frp-options > summary {padding-bottom: 0;}
+#frp-page .frp-options[open] > summary {padding-bottom: 15px;}
+.frp-options summary .text-muted {font-size: 12px; font-weight: normal; margin-left: 12px;}
+.frp-setting {display: grid; grid-template-columns: 165px minmax(0, 1fr); gap: 18px; padding: 14px 0; border-top: 1px solid #eee;}
+.frp-setting-label {font-weight: bold; margin: 0;}
+.frp-port-row {display: flex; align-items: center; gap: 12px; margin-top: 12px;}
+.frp-port-row label {margin: 0; font-weight: normal;}
+#frp-page .frp-port {width: 110px;}
+#frp-page .frp-cert-help {margin-left: 183px;}
+.frp-actions {display: flex; align-items: center; flex-wrap: wrap; gap: 8px;}
+.frp-action-hint {font-size: 13px; margin-left: 6px;}
+#frp-page .frp-maintenance > summary {padding: 15px 20px;}
+#frp-page .frp-maintenance > .frp-details-body {padding: 0 20px 6px;}
+.frp-maintenance-row {display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px 20px; padding: 15px 0; border-top: 1px solid #ddd;}
+.frp-log {max-height: 280px; overflow: auto; white-space: pre-wrap; margin: 0 20px 20px;}
+[data-frp-proxies] td, #frp-review code {overflow-wrap: anywhere; white-space: pre-wrap;}
+@media (max-width: 767px) {
+ #frp-page .panel-body, #frp-page .panel-footer {padding: 14px;}
+ .frp-setting {grid-template-columns: 1fr; gap: 8px;}
+ #frp-page .frp-cert-help {margin-left: 0;}
+ .frp-updated, .frp-options summary .text-muted, .frp-action-hint {display: none;}
+ #frp-editor, #frp-page #toml {height: 360px;}
+}
+.frp-widget {padding: 12px 14px;}
+.frp-widget [hidden] {display: none !important;}
+.frp-widget .frp-status-detail {margin: 10px 0 0; font-size: 12px;}
+.frp-widget table {margin: 12px 0 0; font-size: 12px;}

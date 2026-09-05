@@ -1,0 +1,65 @@
+#!/bin/sh
+# daemon(8) supervises this wrapper; this wrapper supervises only its own frpc.
+# Stop is forwarded to the child, including while waiting between retries.
+umask 077
+frp_child=""
+frp_waiter=""
+frp_guard_pid=""
+frp_pidfile="/var/run/frpc-pfsense.pid"
+frp_attempts=0
+frp_window=$(date +%s)
+frp_stop()
+{
+	trap '' TERM INT
+	[ -z "${frp_guard_pid}" ] || kill "${frp_guard_pid}" 2>/dev/null
+	[ -z "${frp_waiter}" ] || kill "${frp_waiter}" 2>/dev/null
+	if [ -n "${frp_child}" ]; then
+		kill "${frp_child}" 2>/dev/null
+		wait "${frp_child}" 2>/dev/null
+	fi
+	rm -f "${frp_pidfile}"
+	exit 0
+}
+trap frp_stop TERM INT
+cd / || exit 1
+# Stop our supervisor (which forwards TERM to its child) if eligibility changes
+# while frpc is running. This also covers missed events and maintenance mode.
+frp_parent=$$
+(
+	trap 'exit 0' TERM INT
+	while sleep 2; do
+		if ! /usr/local/bin/php -f /usr/local/pkg/frp/carp.php guard; then
+			echo "FRP stopped: enable/CARP policy no longer permits operation."
+			kill -TERM "${frp_parent}" 2>/dev/null
+			exit 0
+		fi
+	done
+) &
+frp_guard_pid=$!
+trap '[ -z "${frp_guard_pid}" ] || kill "${frp_guard_pid}" 2>/dev/null' EXIT
+while :; do
+	/usr/local/bin/php -f /usr/local/pkg/frp/carp.php guard || frp_stop
+	frp_now=$(date +%s)
+	if [ $((frp_now - frp_window)) -ge 600 ]; then
+		frp_attempts=0
+		frp_window=${frp_now}
+	fi
+	if [ "${frp_attempts}" -ge 5 ]; then
+		echo "FRP restart limit reached (5 exits in 10 minutes); manual start required."
+		exit 1
+	fi
+	/usr/local/bin/frpc -c /usr/local/etc/frpc.toml &
+	frp_child=$!
+	printf '%s\n' "${frp_child}" > "${frp_pidfile}.tmp"
+	mv -f "${frp_pidfile}.tmp" "${frp_pidfile}"
+	wait "${frp_child}"
+	frp_result=$?
+	frp_child=""
+	rm -f "${frp_pidfile}"
+	frp_attempts=$((frp_attempts + 1))
+	echo "FRP process exited (${frp_result}); retry ${frp_attempts}/5 in 10 seconds."
+	sleep 10 &
+	frp_waiter=$!
+	wait "${frp_waiter}"
+	frp_waiter=""
+done

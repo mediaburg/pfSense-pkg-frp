@@ -1,144 +1,134 @@
-# pfSense FRP Client Package
+# pfSense FRP Client package
 
-This is a pfSense package port for managing the FRP client (`frpc`) from the
-pfSense web interface.
-
-The package depends on the FreeBSD `net/frp` port for the `frpc` binary. The
-pfSense package installs the WebGUI, package metadata, privilege file, and rc.d
-wrapper.
+Manage [FRP](https://github.com/fatedier/frp) client tunnels from **Services > FRP
+Client** in the classic pfSense WebGUI. Package version 0.1.1 requires FRP 0.52.0
+or newer and PHP 8.3 or newer.
 
 ## Features
 
-- `Services > FRP Client` menu entry
-- dedicated pfSense WebGUI page at `/frp_client.php`
-- full-width editor for the complete `frpc.toml`
-- configuration validation with `frpc verify` before saving
-- manual validation button
-- service restart button
-- process and connection status based on the running process and recent FRP log
-  messages
-- `frpc` version display
-- link to FRP information
-- package registration for pfSense Package Manager
-- package logging under `Status > System Logs > Packages`
-- detection of console-side changes to `/usr/local/etc/frpc.toml`
-- `net/frp` runtime dependency for the `frpc` binary
+- TOML editor with locally bundled syntax highlighting, line numbers, search,
+  plain-text fallback and an unsaved-changes indicator.
+- Validate with the installed frpc, review a masked configuration comparison,
+  then save and restart or reload proxy changes without restarting the client.
+- Detect concurrent browser and console edits. On apply failure, attempt to
+  restore the previous configuration and service state.
+- Live per-tunnel status through the authenticated loopback FRP management API,
+  also available as a dashboard widget.
+- Startup reconnection and bounded crash recovery: ten seconds between retries,
+  stopping after five process exits in ten minutes.
+- Optional outage/recovery notifications through pfSense's configured
+  destinations; disabled by default.
+- Load runtime, last known healthy or previously applied settings into the
+  editor for review and recovery.
+- Bounded DNS, server TCP and local-target connectivity diagnostics.
+- Client certificate and trusted CA selection from Certificate Manager.
+- pfSense package logs with normal log rotation.
+- Configuration replication through pfSense's XMLRPC HA sync, enabled by default
+  with an independent send/receive opt-out on each node.
+- CARP service ownership: start on MASTER, stop on BACKUP, with a selectable VIP
+  and a supervisor check during operation and crash retries.
 
-## Installed Files
+## Configuration
 
-Important installed files:
+Enable the client, enter your TOML, select **Review changes**, then choose
+**Save and restart**. Disabling it and saving stops the managed service.
 
-```text
-/usr/local/www/frp_client.php
-/usr/local/pkg/frp.xml
-/usr/local/pkg/frp/frp.inc
-/usr/local/etc/rc.d/frpc-pfsense
-/usr/local/share/pfSense-pkg-frp/info.xml
-/etc/inc/priv/frp.priv.inc
-```
+**Connection, HA sync, notifications and TLS** contains the additional package options.
+On first use, reconnect and local management are offered enabled in the form;
+existing installations retain their runtime behavior until you save those
+options. Local management replaces the TOML webServer block with an
+authenticated API bound to 127.0.0.1. Select a free local port if 7400 is in use.
 
-`/usr/local/bin/frpc` and `/usr/local/etc/frpc.toml.sample` are installed by
-the `net/frp` dependency, not by this pfSense package.
+The editor's source and comments are retained in config.xml. The generated
+runtime TOML is written atomically to /usr/local/etc/frpc.toml, mode 0600.
+Package settings can override startup retry, management and transport TLS fields
+in this runtime file; the corresponding editor source remains intact.
 
-Runtime files:
+**Save and reload proxies** only accepts changes to proxies, visitors and their
+selection on a running client. Changes to common settings, includes or templates
+require a restart. FRP's native configuration verifier remains the final check.
 
-```text
-/usr/local/etc/frpc.toml
-/usr/local/etc/rc.conf.d/frpc_pfsense
-/var/run/frpc-pfsense.pid
-/var/log/frp.log
-```
+Recovery actions only load text/settings into the editor. Review and save to
+apply them. A healthy snapshot is recorded by the minute monitor when live proxy
+status is healthy. A previously applied snapshot is also retained; it does not
+prove that the tunnel ever connected.
 
-## Configuration Model
+The status table reports the local FRP client's view. It does not establish
+external reachability or end-to-end application health. Diagnostics test DNS
+and TCP reachability, not authentication or TLS handshakes. Plugin, UDP and
+hostname-based local targets are skipped; at most ten local targets are checked.
 
-pfSense package configuration is stored in `/conf/config.xml`. The WebGUI saves
-the FRP client TOML there as base64 so multiline content is preserved.
+Selected certificates are exported to private, content-addressed files in
+/usr/local/etc/frp/certificates. Apply again after certificate renewal. Old
+exports are retained for recovery. Configuration backups, retained history,
+runtime files and certificate exports contain secrets and should be kept private.
 
-`/usr/local/etc/frpc.toml` is the generated runtime configuration file used by
-`frpc`.
+FRP console output is sent through syslog to /var/log/frp.log. Set
+log.to = "console" to see FRP's own messages in the package log. A custom file
+destination in TOML is handled by FRP itself.
 
-If `/usr/local/etc/frpc.toml` is edited manually from the console, the WebGUI
-detects that the runtime file differs from the configuration stored in pfSense.
-It shows a warning and a `Load /usr/local/etc/frpc.toml` button. The runtime file
-is only imported into pfSense after explicit confirmation and successful
-`frpc verify` validation.
+### High Availability sync
 
-## WebGUI Usage
+Install the same FRP Client package on both HA nodes and configure the usual
+XMLRPC synchronization under **System > High Availability Sync** on the primary.
+Saving FRP settings requests that native sync; the receiver validates and applies
+the shared TOML and package options. In the advanced options, uncheck
+**Synchronize FRP settings with the HA peer** and save to stop both sending and
+receiving on that node. The switch itself stays local.
 
-Open:
+CE 2.8.1 needs the [official native XMLRPC correction](docs/patches/README.md)
+for live CARP VIP synchronization when package hooks are installed. The package
+itself does not patch pfSense. Both nodes in the [HA acceptance test](docs/ha-acceptance-2026-09-05.md)
+include this correction.
 
-```text
-Services > FRP Client
-```
+**CARP service ownership** defaults to automatic: all configured CARP VIPs must
+be MASTER before FRP runs. Without CARP VIPs, standalone behavior is preserved.
+You can follow one specific VIP instead or explicitly ignore CARP. Standby nodes
+keep the shared enable flag and configuration, but leave their client stopped.
+The CARP policy is independent of the local configuration-sync switch.
+See [HA behavior and testing](docs/ha.md) for settings, certificates, failover
+behavior and deployment checks.
 
-The page provides:
+## Installation and compatibility
 
-- enable/disable checkbox
-- `frpc.toml` editor
-- `Save`
-- `Validate Configuration`
-- `Restart FRP Service`
-- service status panel
-- `frpc` version
-- recent log preview
-- links to FRP information and pfSense package logs
+This is a custom package, not an official Netgate-supported package.
+Build against a matching pfSense ports tree for the target release and
+architecture, then install the resulting package:
 
-Saving validates the TOML first. Invalid configuration is rejected and is not
-written to `/conf/config.xml` or `/usr/local/etc/frpc.toml`.
+    make package
+    pkg add /path/to/pfSense-pkg-frp-0.1.1.pkg
 
-When enabled, saving restarts the service.
+For an explicitly intended replacement of an installed custom package, pkg add
+-f runs the package installation hooks again. Back up the configuration and old
+package first. Do not force a mismatched FreeBSD ABI or enable a generic FreeBSD
+package repository.
 
-## Logging
+The package has been exercised on **pfSense CE 2.8.1 / FRP 0.65.0**, with separate
+PHP 8.5 regression checks. Current CE 2.9.0 and Plus 26.07 still require their own
+target-system acceptance test. See [compatibility review](docs/compatibility.md)
+and [testing instructions](docs/testing.md) for exact scope and limitations.
 
-`frpc` output is written to:
+Uninstall stops the managed service and removes its monitor cron entry. Runtime
+TOML, private snapshots/certificates and log data are retained for recovery.
 
-```text
-/var/log/frp.log
-```
+## Development
 
-The package metadata registers this log with pfSense, so it appears under:
+The [release workflow](.github/workflows/release.yml) tests and builds a package
+on FreeBSD 15.0. Push a matching version tag such as **v0.1.1** to publish the
+package, SHA256 checksum and build information as a GitHub Release. A manual
+**Run workflow** builds downloadable artifacts without publishing a release.
+See [release instructions](docs/releases.md) for the steps and target limitations.
 
-```text
-Status > System Logs > Packages
-```
+    php tests/run.php
+    php tests/ha.php
+    php tests/carp.php
+    python3 tests/supervisor.py
+    python3 tests/check.py
+    node --check files/usr/local/www/frp-assets/frp.js
 
-The WebGUI status panel also uses recent FRP log messages to infer whether the
-client has connected to the server.
+After changing the installed file inventory:
 
-## Build
+    python3 tests/check.py --write-plist
 
-Place this directory in a pfSense/FreeBSD ports tree:
-
-```text
-net/pfSense-pkg-frp
-```
-
-Build from the port directory:
-
-```sh
-make package
-```
-
-The build uses the normal ports dependency mechanism and pulls `net/frp` for the
-FRP client binary.
-
-## Development Notes
-
-On some pfSense development images:
-
-- `/usr/include/sys/param.h` may be missing, so `make` may need an explicit
-  `OSVERSION`, for example `make OSVERSION=1500029 package`
-- older `pkg-static` versions may not support the `pkg create -T` option used by
-  newer ports trees; in that case the final package can be created manually from
-  the staged files
-
-## Package Manager Visibility
-
-The package uses `info.xml` in pfSense's `pfsensepkgs` format so
-`/etc/rc.packages` can register it in `/conf/config.xml`.
-
-When installed from a local `.pkg` file during development, pfSense may show the
-binary package as coming from `unknown-repository`. The pfSense Installed
-Packages page filters on the pfSense repository name, so a local dev install may
-need a repository annotation or installation from a proper pfSense package
-repository.
+Vendored parser/editor versions and licenses are listed in
+[THIRD_PARTY.md](THIRD_PARTY.md). No editor assets are loaded from a CDN.

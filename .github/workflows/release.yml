@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            version=$(sh scripts/release-version.sh "$REF_NAME")
+          else
+            version=$(sh scripts/release-version.sh)
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: version
+    uses: ./.github/workflows/tests.yml
+
+  build:
+    needs: [version, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PORTS_COMMIT: a621624266b19a7f48b1f94a60821d2c2fc6ee4c
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and inspect FreeBSD 15 package
+        uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1 # v1.5.5
+        with:
+          release: '15.0'
+          arch: amd64
+          envs: PORTS_COMMIT GITHUB_SHA
+          prepare: |
+            pkg install -y git-lite frp php84 php84-gettext php84-ctype php84-mbstring
+          run: |
+            set -eu
+            git init /tmp/pfsense-ports
+            git -C /tmp/pfsense-ports remote add origin https://github.com/pfsense/FreeBSD-ports.git
+            git -C /tmp/pfsense-ports sparse-checkout init --cone
+            git -C /tmp/pfsense-ports sparse-checkout set Mk Templates Tools Keywords net/frp
+            git -C /tmp/pfsense-ports fetch --depth=1 --filter=blob:none origin "$PORTS_COMMIT"
+            git -C /tmp/pfsense-ports checkout --detach FETCH_HEAD
+            test "$(git -C /tmp/pfsense-ports rev-parse HEAD)" = "$PORTS_COMMIT"
+            php tests/run.php /usr/local/bin/frpc
+            php tests/ha.php
+            php tests/carp.php
+            PORTSDIR=/tmp/pfsense-ports sh scripts/build-package.sh
+      - name: Verify download checksum
+        run: cd dist && sha256sum --check SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pfSense-pkg-frp-${{ needs.version.outputs.version }}-FreeBSD15
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pfSense-pkg-frp-${{ needs.version.outputs.version }}-FreeBSD15
+          path: dist
+      - name: Publish verified release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cd dist
+          sha256sum --check SHA256SUMS
+          cat > release-notes.md <<'NOTES'
+          Custom pfSense FRP Client package for the FreeBSD 15 base.
+
+          - Package code was exercised on pfSense CE 2.8.1 / amd64.
+          - The archive contains architecture-independent PHP, shell and web assets. Other CPU architectures still need an acceptance test.
+          - Requires FRP >= 0.52.0 and PHP >= 8.3 from the matching pfSense repository.
+          - Includes optional HA configuration sync and CARP ownership control. On CE 2.8.1, native VIP synchronization requires the official XMLRPC fix [7a9b526](https://github.com/pfsense/pfsense/commit/7a9b5263229799719643b64e304e2afd5675f86f); see [patch instructions](https://github.com/mediaburg/pfSense-pkg-frp/blob/v0.1.1/docs/patches/README.md). The package does not modify pfSense core files.
+          - FreeBSD 16 based pfSense releases need a separate target build and test; do not force this package's ABI.
+
+          SHA256SUMS verifies the package download. BUILD-INFO.txt records the source, ports snapshot and build tools. This is an unsigned custom package, not an official Netgate package.
+          NOTES
+          gh release create "$RELEASE_TAG" ./*.pkg SHA256SUMS BUILD-INFO.txt \
+            --verify-tag --title "FRP Client $RELEASE_TAG" \
+            --notes-file release-notes.md --generate-notes

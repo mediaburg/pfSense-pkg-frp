@@ -9,10 +9,28 @@
 name="frpc_pfsense"
 rcvar="frpc_pfsense_enable"
 command="/usr/sbin/daemon"
-pidfile="/var/run/frpc-pfsense.pid"
-procname="/usr/local/bin/frpc"
-frpc_pfsense_logfile="/var/log/frp.log"
-command_args="-f -H -o ${frpc_pfsense_logfile} -m 3 -p ${pidfile} ${procname} -c /usr/local/etc/frpc.toml"
+pidfile="/var/run/frpc-pfsense-supervisor.pid"
+procname="/usr/sbin/daemon"
+required_files="/usr/local/etc/frpc.toml"
+command_args="-c -f -S -l daemon -s info -T frpc -m 3 -P ${pidfile} /usr/local/libexec/frp-supervisor"
+start_precmd="frpc_pfsense_prestart"
+
+frpc_pfsense_prestart()
+{
+	# Match the WebGUI validator's working directory for relative paths.
+	cd / || return 1
+	if ! /usr/local/bin/php -f /usr/local/pkg/frp/carp.php check; then
+		/usr/bin/logger -p daemon.info -t frpc "Service start held by enable/CARP policy."
+		return 1
+	fi
+	if [ -L "${required_files}" ] ||
+	    ! /usr/local/bin/frpc verify -c "${required_files}" >/dev/null 2>&1; then
+		/usr/bin/logger -p daemon.err -t frpc "Runtime configuration validation failed; service not started."
+		return 1
+	fi
+	# A boundary for the WebGUI: connection events from earlier runs are stale.
+	/usr/bin/logger -p daemon.info -t frpc "Service starting."
+}
 
 load_rc_config "${name}"
 

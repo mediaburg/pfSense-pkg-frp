@@ -1,7 +1,7 @@
 # $FreeBSD$
 
 PORTNAME=	pfSense-pkg-frp
-PORTVERSION=	0.1.0
+PORTVERSION=	0.1.1
 CATEGORIES=	net
 MASTER_SITES=	# empty
 DISTFILES=	# empty
@@ -13,9 +13,11 @@ WWW=		https://github.com/fatedier/frp
 
 LICENSE=	APACHE20
 
-RUN_DEPENDS=	frp>=0:net/frp
+RUN_DEPENDS=	frp>=0.52.0:net/frp
 
 NO_BUILD=	yes
+# Only interpreted code and web assets; the native frpc is supplied by net/frp.
+NO_ARCH=	yes
 NO_MTREE=	yes
 
 SUB_FILES=	pkg-install pkg-deinstall
@@ -29,12 +31,19 @@ do-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/pkg/frp
 	${MKDIR} ${STAGEDIR}${PREFIX}/etc/rc.d
 	${MKDIR} ${STAGEDIR}${PREFIX}/www
+	${MKDIR} ${STAGEDIR}${PREFIX}/www/frp-assets
+	${MKDIR} ${STAGEDIR}${PREFIX}/www/widgets/widgets
+	${MKDIR} ${STAGEDIR}${PREFIX}/www/widgets/include
+	${MKDIR} ${STAGEDIR}${PREFIX}/libexec
 	${MKDIR} ${STAGEDIR}/etc/inc/priv
 	${MKDIR} ${STAGEDIR}${DATADIR}
 	${INSTALL_DATA} -m 0644 ${FILESDIR}${PREFIX}/pkg/frp.xml \
 		${STAGEDIR}${PREFIX}/pkg
-	${INSTALL_DATA} -m 0644 ${FILESDIR}${PREFIX}/pkg/frp/frp.inc \
-		${STAGEDIR}${PREFIX}/pkg/frp
+	(cd ${FILESDIR}${PREFIX}/pkg/frp && ${COPYTREE_SHARE} . ${STAGEDIR}${PREFIX}/pkg/frp)
+	(cd ${FILESDIR}${PREFIX}/www/frp-assets && ${COPYTREE_SHARE} . ${STAGEDIR}${PREFIX}/www/frp-assets)
+	${INSTALL_SCRIPT} ${FILESDIR}${PREFIX}/libexec/frp-supervisor ${STAGEDIR}${PREFIX}/libexec
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/widgets/widgets/frp.widget.php ${STAGEDIR}${PREFIX}/www/widgets/widgets
+	${INSTALL_DATA} ${FILESDIR}${PREFIX}/www/widgets/include/frp.inc ${STAGEDIR}${PREFIX}/www/widgets/include
 	${INSTALL_SCRIPT} ${FILESDIR}${PREFIX}/etc/rc.d/frpc-pfsense \
 		${STAGEDIR}${PREFIX}/etc/rc.d
 	${INSTALL_DATA} -m 0644 ${FILESDIR}${PREFIX}/www/frp_client.php \

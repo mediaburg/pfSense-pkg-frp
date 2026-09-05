@@ -6,3 +6,4 @@ $priv_list['page-services-frp']['descr'] = gettext('Allow access to the FRP Clie
 $priv_list['page-services-frp']['match'] = array();
 $priv_list['page-services-frp']['match'][] = 'pkg_edit.php?xml=frp.xml*';
 $priv_list['page-services-frp']['match'][] = 'frp_client.php*';
+$priv_list['page-services-frp']['match'][] = 'widgets/widgets/frp.widget.php*';
